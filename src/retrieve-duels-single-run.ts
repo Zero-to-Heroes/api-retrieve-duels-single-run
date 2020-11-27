@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
+import SqlString from 'sqlstring';
 import { gzipSync } from 'zlib';
 import { getConnection } from './db/rds';
 import { DuelsRunInfo } from './duels-run-info';
@@ -15,13 +16,14 @@ export default async (event): Promise<any> => {
 	};
 	try {
 		console.log('processing event', event);
+		const escape = SqlString.escape;
 		const runId = event.pathParameters?.proxy;
 
 		const mysql = await getConnection();
 
 		const query = `
 			SELECT * FROM dungeon_run_loot_info
-			WHERE runId = '${runId}'
+			WHERE runId = ${escape(runId)}
 		`;
 		console.log('running query', query);
 		const dbResults: readonly any[] = await mysql.query(query);
