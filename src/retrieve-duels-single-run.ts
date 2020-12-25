@@ -21,19 +21,36 @@ export default async (event): Promise<any> => {
 
 		const mysql = await getConnection();
 
-		const query = `
+		const lootQuery = `
 			SELECT * FROM dungeon_run_loot_info
 			WHERE runId = ${escape(runId)}
 		`;
-		console.log('running query', query);
-		const dbResults: readonly any[] = await mysql.query(query);
-		console.log('executed query', dbResults && dbResults.length, dbResults && dbResults.length > 0 && dbResults[0]);
+		console.log('running query', lootQuery);
+		const lootDbResults: readonly InternalLootInfo[] = await mysql.query(lootQuery);
+		console.log(
+			'executed query',
+			lootDbResults && lootDbResults.length,
+			lootDbResults && lootDbResults.length > 0 && lootDbResults[0],
+		);
+
+		const gameStatsQuery = `
+			SELECT t1.*, t2.duelsRunId as currentDuelsRunId FROM replay_summary t1
+			INNER JOIN replay_summary_secondary_data t2 on t1.reviewId = t2.reviewId
+			WHERE duelsRunId = ${escape(runId)}
+		`;
+		console.log('running query', gameStatsQuery);
+		const gameStatDbResults: readonly GameStatQueryResult[] = await mysql.query(gameStatsQuery);
+		console.log(
+			'executed query',
+			gameStatDbResults && gameStatDbResults.length,
+			gameStatDbResults && gameStatDbResults.length > 0 && gameStatDbResults[0],
+		);
 		await mysql.end();
 
-		const results =
-			!dbResults || dbResults.length === 0
+		const lootResults =
+			!lootDbResults || lootDbResults.length === 0
 				? []
-				: dbResults.map(
+				: lootDbResults.map(
 						result =>
 							({
 								...result,
@@ -43,9 +60,21 @@ export default async (event): Promise<any> => {
 								option3Contents: result.option3Contents ? result.option3Contents.split(',') : [],
 							} as DuelsRunInfo),
 				  );
-		console.log('results', results);
+		console.log('results', lootResults);
 
-		const stringResults = JSON.stringify({ results });
+		const gameStatResults =
+			!gameStatDbResults || gameStatDbResults.length === 0
+				? []
+				: gameStatDbResults.map(result => ({
+						...result,
+						creationTimestamp: Date.parse(result.creationDate),
+				  }));
+
+		const results: (GameStatQueryResult | DuelsRunInfo)[] = [...lootResults, ...gameStatResults].sort(
+			(a, b) => a.creationTimestamp - b.creationTimestamp,
+		);
+
+		const stringResults = JSON.stringify({ results: results });
 		const gzippedResults = gzipSync(stringResults).toString('base64');
 		console.log('compressed', stringResults.length, gzippedResults.length);
 		const response = {
@@ -71,3 +100,73 @@ export default async (event): Promise<any> => {
 		return response;
 	}
 };
+
+interface InternalLootInfo {
+	id: number;
+	adventureType: 'duels' | 'paid-duels';
+	creationDate: string;
+	userId: string;
+	userName: string;
+	reviewId: string;
+	runId: string;
+	bundleType: string;
+	option1: string;
+	option1Contents: string;
+	option2: string;
+	option2Contents: string;
+	option3: string;
+	option3Contents: string;
+	chosenOptionIndex: number;
+	wins: number;
+	losses: number;
+	rating: number;
+}
+
+interface InternalGameStatInfo {
+	id: number;
+	coinPlay: 'coin' | 'play';
+	opponentClass: number;
+	opponentDecklist: string;
+	opponentName: string;
+	opponentRank: string;
+	playerClass: string;
+	playerDecklist: string;
+	playerName: string;
+	playerRank: string;
+	newPlayerRank: string;
+	result: 'won' | 'lost' | 'tied';
+	reviewId: string;
+	gameMode: string;
+	creationDate: string;
+	userId: string;
+	userName: string;
+	gameFormat: string;
+	opponentCardId: string;
+	playerCardId: string;
+	uploaderToken: string;
+	buildNumber: number;
+	playerDeckName: string;
+	scenarioId: number;
+	additionalResult: string;
+	replayKey: string;
+	application: string;
+}
+
+interface InternalGameStatSecondaryInfo {
+	id: number;
+	reviewId: string;
+	bgsAvailableTribes: string;
+	bgsBannedTribes: string;
+	bgsHeroPickChoice: string;
+	bgsHeroPickOption: string;
+	duelsRunId: string;
+	normalizedXpGain: number;
+	totalDurationSeconds: number;
+	totalDurationTurns: number;
+	xpBonus: number;
+}
+
+interface GameStatQueryResult extends InternalGameStatInfo {
+	currentDuelsRunId: string;
+	creationTimestamp: number;
+}
