@@ -14,7 +14,6 @@ export default async (event): Promise<any> => {
 		'Access-Control-Allow-Methods': 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
 		'Access-Control-Allow-Origin': event.headers?.Origin || event.headers?.origin || '*',
 	};
-	console.log('processing event', event);
 	const escape = SqlString.escape;
 	const runId = event.pathParameters?.proxy;
 
@@ -24,26 +23,14 @@ export default async (event): Promise<any> => {
 			SELECT * FROM dungeon_run_loot_info
 			WHERE runId = ${escape(runId)}
 		`;
-	console.log('running query', lootQuery);
 	const lootDbResults: readonly InternalLootInfo[] = await mysql.query(lootQuery);
-	console.log(
-		'executed query',
-		lootDbResults && lootDbResults.length,
-		lootDbResults && lootDbResults.length > 0 && lootDbResults[0],
-	);
 
 	const gameStatsQuery = `
 			SELECT t1.*, t2.duelsRunId as currentDuelsRunId FROM replay_summary t1
 			INNER JOIN replay_summary_secondary_data t2 on t1.reviewId = t2.reviewId
 			WHERE duelsRunId = ${escape(runId)}
 		`;
-	console.log('running query', gameStatsQuery);
 	const gameStatDbResults: readonly GameStatQueryResult[] = await mysql.query(gameStatsQuery);
-	console.log(
-		'executed query',
-		gameStatDbResults && gameStatDbResults.length,
-		gameStatDbResults && gameStatDbResults.length > 0 && gameStatDbResults[0],
-	);
 	await mysql.end();
 
 	const lootResults =
@@ -59,7 +46,6 @@ export default async (event): Promise<any> => {
 							option3Contents: result.option3Contents ? result.option3Contents.split(',') : [],
 						} as DuelsRunInfo),
 			  );
-	console.log('results', lootResults);
 
 	const gameStatResults =
 		!gameStatDbResults || gameStatDbResults.length === 0
@@ -75,7 +61,6 @@ export default async (event): Promise<any> => {
 
 	const stringResults = JSON.stringify({ results: results });
 	const gzippedResults = gzipSync(stringResults).toString('base64');
-	console.log('compressed', stringResults.length, gzippedResults.length);
 	const response = {
 		statusCode: 200,
 		isBase64Encoded: true,
@@ -85,7 +70,6 @@ export default async (event): Promise<any> => {
 			'Content-Encoding': 'gzip',
 		},
 	};
-	console.log('sending back success reponse');
 	return response;
 };
 
