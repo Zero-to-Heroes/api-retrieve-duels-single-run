@@ -26,9 +26,8 @@ export default async (event): Promise<any> => {
 	const lootDbResults: readonly InternalLootInfo[] = await mysql.query(lootQuery);
 
 	const gameStatsQuery = `
-			SELECT t1.*, t2.duelsRunId as currentDuelsRunId FROM replay_summary t1
-			INNER JOIN replay_summary_secondary_data t2 on t1.reviewId = t2.reviewId
-			WHERE duelsRunId = ${escape(runId)}
+			SELECT t1.*, t1.runId as currentDuelsRunId FROM replay_summary t1
+			WHERE runId = ${escape(runId)}
 		`;
 	const gameStatDbResults: readonly GameStatQueryResult[] = await mysql.query(gameStatsQuery);
 	await mysql.end();
