@@ -20,7 +20,7 @@ Resources:
         Properties:
             Handler: retrieve-duels-single-run.default
             # Runtime: nodejs8.10
-            Runtime: nodejs10.x
+            Runtime: nodejs12.x
             Timeout: 2
             ReservedConcurrentExecutions: 40
             CodeUri: ./dist/retrieve-duels-single-run
