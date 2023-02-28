@@ -22,7 +22,7 @@ Resources:
             # Runtime: nodejs8.10
             Runtime: nodejs12.x
             Timeout: 2
-            ReservedConcurrentExecutions: 40
+            ReservedConcurrentExecutions: 10
             CodeUri: ./dist/retrieve-duels-single-run
             # https://stackoverflow.com/questions/39144688/aws-lambda-invoke-not-calling-another-lambda-function-node-js
             # VpcConfig:
