@@ -15,7 +15,9 @@ export default async (event): Promise<any> => {
 		'Access-Control-Allow-Origin': event.headers?.Origin || event.headers?.origin || '*',
 	};
 	const escape = SqlString.escape;
-	const runId = event.pathParameters?.proxy;
+	const runId = event.requestContext?.http?.path?.length
+		? event.requestContext.http.path.split('/')[1]
+		: event.pathParameters?.proxy;
 
 	const mysql = await getConnection();
 
